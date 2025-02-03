@@ -1,7 +1,6 @@
 import asyncio
 from pathlib import Path
 
-from popframe.models import region
 from popframe.models.region import Region
 
 from app.dependences import logger, http_exception, config
