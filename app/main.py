@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import router_territory, router_population, router_frame, router_agglomeration, router_popframe
-from app.routers import router_landuse, router_recalculate_model
+# from app.routers import router_territory, router_population, router_frame, router_agglomeration, router_popframe
+# from app.routers import router_landuse, router_recalculate_model
+from app.popframe_models.popframe_models_controller import model_calculator_router
 from loguru import logger
 import sys
 
@@ -35,17 +36,15 @@ app.add_middleware(
 #     return {"message": "Welcome to PopFrame Service"}
 
 # Include routers
-app.include_router(router_recalculate_model.region_router)
-app.include_router(router_territory.territory_router)
-app.include_router(router_population.population_router)
-app.include_router(router_frame.network_router)
-app.include_router(router_agglomeration.agglomeration_router)
-app.include_router(router_landuse.landuse_router)
-app.include_router(router_popframe.popframe_router)
+# app.include_router(router_recalculate_model.region_router)
+# app.include_router(router_territory.territory_router)
+# app.include_router(router_population.population_router)
+# app.include_router(router_frame.network_router)
+# app.include_router(router_agglomeration.agglomeration_router)
+# app.include_router(router_landuse.landuse_router)
+# app.include_router(router_popframe.popframe_router)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+app.include_router(model_calculator_router)
 
 # @app.on_event("startup")
 # async def startup_event():

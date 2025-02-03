@@ -1,120 +1,107 @@
-from typing import Literal
+import json
 
-import numpy as np
 import geopandas as gpd
 import pandas as pd
 from popframe.preprocessing.level_filler import LevelFiller
+from popframe.models.region import Region
 
 from app.dependences import (
     urban_api_handler,
-    transportframe_api_handler,
     http_exception,
-    logger
+    logger,
 )
+from app.common.storage.pop_frame_caching_service import pop_frame_caching_service
+from .services.popframe_models_api_service import pop_frame_model_api_service
 
 
-class PopFrameModelApiService:
-    """Class for external api services data retrieving"""
-
-    #ToDo processing database level changes
-    @staticmethod
-    async def get_regions() -> list[int]:
-        """
-        Function retrieves all available regions
-        Returns:
-            list[int]: list of available regions as int id
-        """
-
-        response = await urban_api_handler.get(
-            extra_url="/api/v1/all_territories_without_geometry",
-            params={
-                "parent_id": 12639
-            }
-        )
-        regions_id_list = [i["territory_id"] for i in response]
-        return regions_id_list
+class PopFrameModelsService:
+    """Class for popframe model handling"""
 
     @staticmethod
-    async def get_territories_population(territories_ids: list[int]) -> pd.DataFrame:
+    async def create_model(
+            region_borders: gpd.GeoDataFrame,
+            towns: gpd.GeoDataFrame,
+            adj_mx: pd.DataFrame,
+            region_id: int,
+    ) -> Region:
         """
-        Function retrieves population data for provided territories
+        Function initialises popframe region model
         Args:
-            territories_ids (list): list of territories ids
+            region_borders (gpd.GeoDataFrame): region borders
+            towns (gpd.GeoDataFrame): region towns layer
+            adj_mx (pd.DataFrame): adjacency matrix for region from TransportFrame
+            region_id (int): region id
         Returns:
-            pd.DataFrame with id and population data
+            Region: PopFrame regional model
         Raises:
-            500, internal error in case population data parsing fails
+            500, internal error in case model initialization fails
         """
 
-        population_list = []
-        for ter_id in territories_ids:
-            response = await urban_api_handler.get(
-                extra_url="/api/v1/territory/892/indicator_values",
-                params={
-                    "territory_id": ter_id,
-                    "indicator_value": 1
-                }
-            )
-            population_list.append(response[0]["value"])
+        local_crs = region_borders.estimate_utm_crs()
         try:
-            population_df = pd.DataFrame(
-                np.array([territories_ids, population_list]).T,
-                columns=["territory_id", "population"]
+            region_model = Region(
+                region = region_borders.to_crs(local_crs),
+                towns=towns.to_crs(local_crs),
+                accessibility_matrix=adj_mx
             )
-            population_df = population_df[population_df["population"] > 0].copy()
-            return population_df
+            return region_model
+
         except Exception as e:
-            logger.error(f"error during population data retrieval {str(e)}")
             raise http_exception(
                 status_code=500,
-                msg=f"error during population data retrieval",
-                _input=[territories_ids, population_list],
+                msg=f"error during PopFrame model initialization with region {region_id}",
+                _input={
+                    "region": json.loads(region_borders.to_crs(local_crs).to_json()),
+                    "cities": json.loads(towns.to_crs(local_crs).to_json()),
+                    "adj_mx": adj_mx.to_dict(),
+                },
                 _detail={"Error": str(e)}
             )
 
-    #ToDo rewrite to object api
-    @staticmethod
-    async def get_matrix_for_region(
-            region_id: int,
-            graph_type: Literal["car", "walk", "intermodal"]
-    ) -> pd.DataFrame:
+    async def calculate_model(self, region_id: int) -> None:
         """
-        Function retrieves matrix for region
+        Function calculates popframe model for region
         Args:
             region_id (int): region id
-            graph_type (Literal["", ""]): graph type
         Returns:
-            pd.DataFrame: matrix index-values
-        Raises:
-            404, not found, got empty matrix
-            500, internal error, matrix parsing fails
+            None
         """
 
-        response = await transportframe_api_handler.get(
-            extra_url=f"{region_id}/get_matrix",
+        region_borders = await pop_frame_model_api_service.get_region_borders(region_id)
+        cities = await urban_api_handler.get(
+            endpoint_url="/api/v1/all_territories",
             params={
-                "graph_type": graph_type,
+                "parent_id": region_id,
+                "get_all_levels": "true",
+                "cities_only": "true",
+                "centers_only": "true",
             }
         )
-        try:
-            adj_mx = pd.DataFrame(response['values'], index=response['index'], columns=response['columns'])
-        except Exception as e:
-            logger.error(f"error during matrix retrieval {str(e)}")
-            raise http_exception(
-                status_code=500,
-                msg=f"error during matrix parsing",
-                _input=response,
-                _detail={"Error": str(e)}
-            )
-        if adj_mx.empty:
-            logger.warning(f"matrix for region {region_id} is empty")
-            raise http_exception(
-                status_code=404,
-                msg=f"matrix for region {region_id} not found",
-                _input=response,
-                _detail={}
-            )
-        return adj_mx
+        cities_gdf = gpd.GeoDataFrame.from_features(cities, crs=4326)
+        population_data_df = await pop_frame_model_api_service.get_territories_population(
+            territories_ids=cities_gdf["territory_id"].to_list(),
+        )
+        cities_gdf = pd.merge(
+            cities_gdf,
+            population_data_df,
+            on="territory_id"
+        ).reset_index(drop=True)
+        cities_gdf.set_index("territory_id", inplace=True)
+        level_filler = LevelFiller(towns=cities_gdf)
+        towns = level_filler.fill_levels()
+        logger.info(f"Loaded cities for region {region_id}")
+        matrix = await pop_frame_model_api_service.get_matrix_for_region(region_id=region_id, graph_type="car")
+        logger.info(f"Loaded matrix for region {region_id}")
+        model = await self.create_model(
+            region_borders=region_borders,
+            towns=towns,
+            adj_mx=matrix,
+            region_id=region_id,
+        )
+        await pop_frame_caching_service.cache_model_to_pickle(
+            region_model=model,
+            region_id=region_id,
+        )
 
     async def load_and_cash_models(self):
         """
@@ -123,25 +110,9 @@ class PopFrameModelApiService:
             None
         """
 
-        regions_ids_to_process = await self.get_regions()
+        regions_ids_to_process = await pop_frame_model_api_service.get_regions()
         for region_id in regions_ids_to_process:
-            cities = await urban_api_handler.get(
-                extra_url="/api/v1/all_territories",
-                params={
-                    "parent_id": region_id,
-                    "get_all_levels": True,
-                    "cities_only": True,
-                    "centers_only": True,
-                }
-            )
-            cities_gdf = gpd.GeoDataFrame.from_features(cities, crs=4326)
-            population_data_df = await self.get_territories_population(
-                territories_ids=cities["territory_id"].to_list(),
-            )
-            cities_gdf = pd.merge(cities, population_data_df, on="territory_id").reset_index(drop=True)
-            level_filler = LevelFiller(towns=cities_gdf)
-            towns = level_filler.fill_levels()
-            logger.info(f"Loaded cities for region {region_id}")
-            matrix = await self.get_matrix_for_region(region_id=region_id, graph_type="car")
-            logger.info(f"Loaded matrix for region {region_id}")
+            await self.calculate_model(region_id=region_id)
 
+
+pop_frame_model_service = PopFrameModelsService()

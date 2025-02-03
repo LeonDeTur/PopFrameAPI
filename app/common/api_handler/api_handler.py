@@ -46,8 +46,8 @@ class APIHandler:
             raise http_exception(
                 response.status,
                 "Couldn't get data from API",
-                _input=response.url,
-                _detail=response.json(),
+                _input=response.url.__str__(),
+                _detail=await response.json(),
             )
 
     async def get(
@@ -71,7 +71,7 @@ class APIHandler:
         if not session:
             session = aiohttp.ClientSession()
         url = self.base_url + endpoint_url
-        with session.get(
+        async with session.get(
                 url=url,
                 headers=headers,
                 params=params
