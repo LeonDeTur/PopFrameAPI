@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.dependences import logger
-from .popframe_models_service import pop_frame_model_service
+from app.common.models.popframe_models.popframe_models_service import pop_frame_model_service
 
 
 model_calculator_router = APIRouter(prefix="/model_calculator")

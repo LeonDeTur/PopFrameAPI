@@ -13,6 +13,31 @@ class PopFrameCachingService(CachingService):
 
         super().__init__(popframe_cache_path)
 
+    async def check_path(self, region_id: int) -> bool:
+        """
+        Function checks weather cached model exists
+        Args:
+            region_id (int): Region ID
+        Returns:
+            bool: weather model exists
+        """
+
+        files = list(self.caching_path.iterdir())
+        for file in files:
+            if file.name == f"{region_id}.pkl":
+                return True
+        return False
+
+    async def get_available_models(
+            self
+    ) -> list[str]:
+        """
+        Function returns all cached models
+        """
+
+        files = list(self.caching_path.iterdir())
+        return files
+
     async def cache_model_to_pickle(self, region_model: Region, region_id: int) -> str:
         """
         Function caches popframe model to pickle
@@ -35,7 +60,10 @@ class PopFrameCachingService(CachingService):
                 status_code=500,
                 msg=f"Failed to cache file to pickle {region_id}",
                 _input={"region": region_model.__str__()},
-                _detail={"Error": str(e)}
+                _detail={
+                    "Error": str(e),
+                    "available_files": await self.get_available_models()
+                }
             )
 
     async def load_cached_model(

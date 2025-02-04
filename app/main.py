@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# from app.routers import router_territory, router_population, router_frame, router_agglomeration, router_popframe
-# from app.routers import router_landuse, router_recalculate_model
-from app.popframe_models.popframe_models_controller import model_calculator_router
+from app.routers import router_territory, router_population, router_frame, router_agglomeration, router_popframe
+from app.routers import router_landuse
+from app.routers.router_popframe_models import model_calculator_router
+from app.common.models.popframe_models.popframe_models_service import pop_frame_model_service
 from loguru import logger
 import sys
 
@@ -30,24 +31,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# # Root endpoint
-# @app.get("/", response_model=Dict[str, str])
-# def read_root():
-#     return {"message": "Welcome to PopFrame Service"}
-
-# Include routers
-# app.include_router(router_recalculate_model.region_router)
-# app.include_router(router_territory.territory_router)
-# app.include_router(router_population.population_router)
-# app.include_router(router_frame.network_router)
-# app.include_router(router_agglomeration.agglomeration_router)
-# app.include_router(router_landuse.landuse_router)
-# app.include_router(router_popframe.popframe_router)
+# Root endpoint
+@app.get("/", response_model=dict[str, str])
+def read_root():
+    return {"message": "Welcome to PopFrame Service"}
 
 app.include_router(model_calculator_router)
+# Include routers
+app.include_router(router_territory.territory_router)
+app.include_router(router_population.population_router)
+app.include_router(router_frame.network_router)
+app.include_router(router_agglomeration.agglomeration_router)
+app.include_router(router_landuse.landuse_router)
+app.include_router(router_popframe.popframe_router)
+app.include_router(model_calculator_router)
 
-# @app.on_event("startup")
-# async def startup_event():
-#     await get_model.process_models()
+@app.on_event("startup")
+async def startup_event():
+    await pop_frame_model_service.load_and_cash_all_models()
 
 

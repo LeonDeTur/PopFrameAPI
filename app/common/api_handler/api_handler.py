@@ -69,7 +69,13 @@ class APIHandler:
         """
 
         if not session:
-            session = aiohttp.ClientSession()
+            async with aiohttp.ClientSession() as session:
+                return await  self.get(
+                    endpoint_url=endpoint_url,
+                    headers=headers,
+                    params=params,
+                    session=session,
+                )
         url = self.base_url + endpoint_url
         async with session.get(
                 url=url,
@@ -100,7 +106,14 @@ class APIHandler:
         """
 
         if not session:
-            session = aiohttp.ClientSession()
+            async with aiohttp.ClientSession() as session:
+                return await self.post(
+                    endpoint_url=endpoint_url,
+                    headers=headers,
+                    params=params,
+                    data=data,
+                    session=session,
+                )
         url = self.base_url + endpoint_url
         with session.post(
             url=url,
@@ -132,7 +145,14 @@ class APIHandler:
         """
 
         if not session:
-            session = aiohttp.ClientSession()
+            async with aiohttp.ClientSession() as session:
+                return await self.put(
+                    endpoint_url=endpoint_url,
+                    headers=headers,
+                    params=params,
+                    data=data,
+                    session=session,
+                )
         url = self.base_url + endpoint_url
         with session.put(
                 url=url,
@@ -164,7 +184,14 @@ class APIHandler:
         """
 
         if not session:
-            session = aiohttp.ClientSession()
+            async with aiohttp.ClientSession() as session:
+                return await self.delete(
+                    endpoint_url=endpoint_url,
+                    headers=headers,
+                    params=params,
+                    data=data,
+                    session=session,
+                )
         url = self.base_url + endpoint_url
         with session.delete(
                 url=url,

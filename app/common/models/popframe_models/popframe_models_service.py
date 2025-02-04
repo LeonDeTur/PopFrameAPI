@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import geopandas as gpd
@@ -77,6 +78,8 @@ class PopFrameModelsService:
                 "centers_only": "true",
             }
         )
+        if len(cities["features"]) < 1:
+            logger.info(f"No cities found for region {region_id}")
         cities_gdf = gpd.GeoDataFrame.from_features(cities, crs=4326)
         population_data_df = await pop_frame_model_api_service.get_territories_population(
             territories_ids=cities_gdf["territory_id"].to_list(),
@@ -103,7 +106,7 @@ class PopFrameModelsService:
             region_id=region_id,
         )
 
-    async def load_and_cash_models(self):
+    async def load_and_cash_all_models(self):
         """
         Functions loads and cashes all available models
         Returns:
@@ -111,8 +114,30 @@ class PopFrameModelsService:
         """
 
         regions_ids_to_process = await pop_frame_model_api_service.get_regions()
+        task_list = []
         for region_id in regions_ids_to_process:
-            await self.calculate_model(region_id=region_id)
+            if region_id in (16141, 3138, 3268):
+                continue
+            task_list.append(self.calculate_model(region_id=region_id))
+        await asyncio.gather(*task_list)
+
+    async def get_model(
+            self,
+            region_id: int,
+    ) -> Region:
+        """
+        Function gets model for region
+        Args:
+            region_id (int): region id
+        Returns:
+            Region: PopFrame regional model
+        """
+
+        if pop_frame_caching_service.check_path(region_id=region_id):
+            model = await pop_frame_caching_service.load_model(region_id=region_id)
+            return model
+        await self.calculate_model(region_id=region_id)
+        return await self.get_model(region_id=region_id)
 
 
 pop_frame_model_service = PopFrameModelsService()

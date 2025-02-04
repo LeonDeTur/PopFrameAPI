@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from iduconfig import Config
 from loguru import logger
 
