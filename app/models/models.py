@@ -1,5 +1,4 @@
-from pydantic import BaseModel
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 from pydantic_geojson import PolygonModel, MultiPolygonModel
 from pydantic import BaseModel, Field
 

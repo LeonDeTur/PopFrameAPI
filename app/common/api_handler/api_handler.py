@@ -40,7 +40,7 @@ class APIHandler:
                 response.status,
                 "Couldn't get data from API",
                 _input=response.url,
-                _detail=response.text,
+                _detail=await response.text(),
             )
         else:
             raise http_exception(

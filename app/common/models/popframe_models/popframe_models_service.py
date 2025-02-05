@@ -3,6 +3,7 @@ import json
 
 import geopandas as gpd
 import pandas as pd
+from mistune.plugins.task_lists import task_lists
 from popframe.preprocessing.level_filler import LevelFiller
 from popframe.models.region import Region
 
@@ -114,12 +115,9 @@ class PopFrameModelsService:
         """
 
         regions_ids_to_process = await pop_frame_model_api_service.get_regions()
-        task_list = []
-        for region_id in regions_ids_to_process:
-            if region_id in (16141, 3138, 3268):
-                continue
-            task_list.append(self.calculate_model(region_id=region_id))
-        await asyncio.gather(*task_list)
+        for i in range(0, len(regions_ids_to_process), 5):
+            task_list = [self.calculate_model(region_id=j) for j in regions_ids_to_process[i:i+5]]
+            await asyncio.gather(*task_list)
 
     async def get_model(
             self,
