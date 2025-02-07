@@ -118,7 +118,7 @@ async def process_evaluation(
                              f"Response body: {indicators_response.text}")
                 raise Exception("Error saving indicators")
     except Exception as e:
-        logger.error(f"Error in the evaluation process: {e}")
+        logger.error(f"Error during saving indicators {e.__str__()}")
 
 
 @territory_router.post("/save_evaluate_location")

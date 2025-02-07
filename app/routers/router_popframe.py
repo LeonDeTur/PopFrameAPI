@@ -12,7 +12,7 @@ from app.dependences import config
 from app.utils.auth import verify_token
 
 
-popframe_router = APIRouter(prefix="/PopFrame", tags=["PopFrame Evaluation"])
+popframe_router = APIRouter(prefix="/popframe", tags=["PopFrame Evaluation"])
 
 logger.remove()
 logger.add(

@@ -3,7 +3,6 @@ import json
 
 import geopandas as gpd
 import pandas as pd
-from mistune.plugins.task_lists import task_lists
 from popframe.preprocessing.level_filler import LevelFiller
 from popframe.models.region import Region
 
@@ -77,7 +76,7 @@ class PopFrameModelsService:
                 "get_all_levels": "true",
                 "cities_only": "true",
                 "centers_only": "true",
-            }
+            },
         )
         if len(cities["features"]) < 1:
             logger.info(f"No cities found for region {region_id}")
@@ -95,6 +94,7 @@ class PopFrameModelsService:
         towns = level_filler.fill_levels()
         logger.info(f"Loaded cities for region {region_id}")
         matrix = await pop_frame_model_api_service.get_matrix_for_region(region_id=region_id, graph_type="car")
+        matrix = matrix.loc[towns.index, towns.index]
         logger.info(f"Loaded matrix for region {region_id}")
         model = await self.create_model(
             region_borders=region_borders,
@@ -116,7 +116,11 @@ class PopFrameModelsService:
 
         regions_ids_to_process = await pop_frame_model_api_service.get_regions()
         for i in range(0, len(regions_ids_to_process), 5):
-            task_list = [self.calculate_model(region_id=j) for j in regions_ids_to_process[i:i+5]]
+            task_list = [
+                self.calculate_model(region_id=j) for j in regions_ids_to_process[i:i+5] if j not in (
+                    3268, 3138
+                )
+            ]
             await asyncio.gather(*task_list)
 
     async def get_model(
@@ -132,7 +136,7 @@ class PopFrameModelsService:
         """
 
         if pop_frame_caching_service.check_path(region_id=region_id):
-            model = await pop_frame_caching_service.load_model(region_id=region_id)
+            model = await pop_frame_caching_service.load_cached_model(region_id=region_id)
             return model
         await self.calculate_model(region_id=region_id)
         return await self.get_model(region_id=region_id)

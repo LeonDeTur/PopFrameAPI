@@ -1,3 +1,4 @@
+import asyncio
 from typing import Literal
 
 import numpy as np
@@ -81,15 +82,20 @@ class PopFrameModelApiService:
         """
 
         population_list = []
-        for ter_id in territories_ids:
-            response = await urban_api_handler.get(
-                endpoint_url="/api/v1/territory/892/indicator_values",
-                params={
-                    "territory_id": ter_id,
-                    "indicator_value": 1
-                }
-            )
-            population_list.append(response[0]["value"])
+        for item in range(0, len(territories_ids), 15):
+            current_ids = territories_ids[item: item + 15]
+            task_list = [
+                urban_api_handler.get(
+                    endpoint_url=f"/api/v1/territory/{ter_id}/indicator_values",
+                    params={
+                        "indicator_value": 1
+                    }
+                ) for ter_id in current_ids
+            ]
+            results = await asyncio.gather(*task_list)
+            logger.info(f"Population response length: {len(results)}")
+            pop_to_add = [i[0]["value"] if len(i) > 0 else 0 for i in results]
+            population_list += pop_to_add
         try:
             population_df = pd.DataFrame(
                 np.array([territories_ids, population_list]).T,
