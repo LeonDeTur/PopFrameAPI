@@ -141,5 +141,16 @@ class PopFrameModelsService:
         await self.calculate_model(region_id=region_id)
         return await self.get_model(region_id=region_id)
 
+    @staticmethod
+    async def get_available_regions() -> list[int]:
+        """
+        Function gets available models
+        Returns:
+            list[int]: available models list
+        """
+
+        result = await pop_frame_caching_service.get_available_models()
+        return result
+
 
 pop_frame_model_service = PopFrameModelsService()

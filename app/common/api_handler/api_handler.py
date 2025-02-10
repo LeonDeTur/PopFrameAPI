@@ -36,12 +36,20 @@ class APIHandler:
         if response.status in (200, 201):
             return await response.json(content_type="application/json")
         elif response.status == 500:
-            raise http_exception(
-                response.status,
-                "Couldn't get data from API",
-                _input=response.url,
-                _detail=await response.text(),
-            )
+            try:
+                raise http_exception(
+                    response.status,
+                    "Couldn't get data from API",
+                    _input=response.url.__str__(),
+                    _detail=await response.json(),
+                )
+            except:
+                raise http_exception(
+                    response.status,
+                    "Couldn't get data from API",
+                    _input=response.url.__str__(),
+                    _detail=await response.text(),
+                )
         else:
             raise http_exception(
                 response.status,

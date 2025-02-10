@@ -5,12 +5,12 @@ import numpy as np
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import shape
+from loguru import logger
 
 from app.dependences import (
     urban_api_handler,
     transportframe_api_handler,
     http_exception,
-    logger,
 )
 
 
