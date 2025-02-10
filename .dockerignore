@@ -2,7 +2,10 @@
 .idea
 Dockerfile
 DockerRun.txt
-
+.gitignore
+.dockerignore
+docker-compose.debug.yml
+.docker-compose.yml
 build.sh
 
 venv/
