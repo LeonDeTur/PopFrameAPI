@@ -128,13 +128,20 @@ class APIHandler:
                     session=session,
                 )
         url = self.base_url + endpoint_url
-        with session.post(
+        async with session.post(
             url=url,
             headers=headers,
             params=params,
             data=data,
         ) as response:
             result = await self._check_response_status(response)
+            if not result:
+                return await  self.post(
+                    endpoint_url=endpoint_url,
+                    headers=headers,
+                    params=params,
+                    session=session,
+                )
             return result
 
     async def put(
@@ -167,13 +174,20 @@ class APIHandler:
                     session=session,
                 )
         url = self.base_url + endpoint_url
-        with session.put(
+        async with session.put(
                 url=url,
                 headers=headers,
                 params=params,
                 data=data,
         ) as response:
             result = await self._check_response_status(response)
+            if not result:
+                return await  self.put(
+                    endpoint_url=endpoint_url,
+                    headers=headers,
+                    params=params,
+                    session=session,
+                )
             return result
 
     async def delete(
@@ -206,11 +220,18 @@ class APIHandler:
                     session=session,
                 )
         url = self.base_url + endpoint_url
-        with session.delete(
+        async with session.delete(
                 url=url,
                 headers=headers,
                 params=params,
                 data=data,
         ) as response:
             result = await self._check_response_status(response)
+            if not result:
+                return await  self.delete(
+                    endpoint_url=endpoint_url,
+                    headers=headers,
+                    params=params,
+                    session=session,
+                )
             return result
