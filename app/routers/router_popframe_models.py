@@ -1,6 +1,6 @@
 from fastapi import APIRouter
+from loguru import logger
 
-from app.dependences import logger
 from app.common.models.popframe_models.popframe_models_service import pop_frame_model_service
 
 

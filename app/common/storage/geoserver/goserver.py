@@ -47,17 +47,15 @@ class GeoserverStorage:
 
         created_at = datetime.now()
         frame = CacheablePickleObject(layer)
-        filename = self.storage.save(
+        geopackage_name = self.storage.save(
             frame,
             name,
-            ".pickle",
+            ".gpkg",
             created_at,
             region_id,
             layer_type,
         )
 
-        geopackage_name = f"{filename.split('.')[0]}.gpkg"
-        frame.to_file(str(self.storage.cache_path / geopackage_name))
         try:
             with open(self.storage.cache_path / geopackage_name, "rb") as fin:
                 await self.geoserver_client.upload_layer(
@@ -67,7 +65,8 @@ class GeoserverStorage:
                     created_at,
                     True,
                     None,
-                    region_id
+                    region_id,
+                    layer_type
                 )
         except Exception as e:
             print(e)

@@ -1,9 +1,10 @@
 import asyncio
 from pathlib import Path
 
-from popframe.models.region import Region
+from loguru import logger
 
-from app.dependences import logger, http_exception, config
+from popframe.models.region import Region
+from app.dependences import http_exception, config
 from .caching_serivce import CachingService
 
 class PopFrameCachingService(CachingService):

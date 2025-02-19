@@ -19,13 +19,13 @@ async def get_agglomeration_endpoint(
         region_model = await pop_frame_model_service.get_model(region_id)
         builder = AgglomerationBuilder(region=region_model)
         agglomeration_gdf = builder.get_agglomerations()
-        geoserver_storage.save_gdf_to_geoserver(
+        await geoserver_storage.save_gdf_to_geoserver(
             layer=agglomeration_gdf,
-            name="agglomeration",
+            name="popframe",
             region_id=region_id,
             layer_type="agglomerations",
         )
-        result = geoserver_storage.get_layer_from_geoserver(
+        result = await geoserver_storage.get_layer_from_geoserver(
             region_id=region_id,
             layer_type="agglomerations",
         )
