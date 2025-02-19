@@ -11,7 +11,7 @@ from app.dependences import (
     http_exception,
     logger,
 )
-from app.common.storage.pop_frame_caching_service import pop_frame_caching_service
+from app.common.storage.models.pop_frame_caching_service import pop_frame_caching_service
 from .services.popframe_models_api_service import pop_frame_model_api_service
 
 

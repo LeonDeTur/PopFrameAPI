@@ -7,6 +7,6 @@ DockerRun.txt
 docker-compose.debug.yml
 .docker-compose.yml
 build.sh
-
+**.log
 venv/
 .venv/
