@@ -9,7 +9,7 @@ from iduconfig import Config
 from idustorage.storage.storage import Storage
 from idugeoserverclient import IduGeoserverClient
 
-from .pickle_cacheable import CacheablePickleObject
+from .geopackage_cacheable import CacheableGeopackageObject
 from .geoserver_dto import PopFrameGeoserverDTO
 
 class GeoserverStorage:
@@ -46,7 +46,7 @@ class GeoserverStorage:
     ) -> None:
 
         created_at = datetime.now()
-        frame = CacheablePickleObject(layer)
+        frame = CacheableGeopackageObject(layer)
         geopackage_name = self.storage.save(
             frame,
             name,
