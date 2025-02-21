@@ -53,7 +53,7 @@ class GeoserverStorage:
             ".gpkg",
             created_at,
             region_id,
-            layer_type,
+            layer_type
         )
 
         try:

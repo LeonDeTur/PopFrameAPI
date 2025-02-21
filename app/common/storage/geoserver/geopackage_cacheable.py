@@ -11,10 +11,18 @@ class CacheableGeopackageObject(Cacheable):
     def __init__(self, to_cache: gpd.GeoDataFrame):
         self.object = to_cache
 
-    def to_file(self, path: Path, name: str, ext: str = ".gpkg", date: str = datetime.now(), *args) -> str:
-        filepath = f"{date}_{name}"
+    def to_file(
+            self,
+            path: Path,
+            name: str,
+            ext: str = ".gpkg",
+            date: str = datetime.now(),
+            separator: str="_",
+            *args
+    ) -> str:
+        filepath = f"{date}{separator}{name}"
         for arg in args:
-            filepath += f"_{arg}"
+            filepath += f"{separator}{arg}"
         filepath += ext
         path_to_file = path / filepath
         try:

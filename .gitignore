@@ -140,6 +140,8 @@ dmypy.json
 *.pkl
 *.graphml
 *.csv
+*.json
+*.gpkg
 /popframe/output_data
 
 cache/
