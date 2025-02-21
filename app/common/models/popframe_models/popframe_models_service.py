@@ -3,15 +3,15 @@ import json
 
 import geopandas as gpd
 import pandas as pd
+from loguru import logger
+
 from popframe.preprocessing.level_filler import LevelFiller
 from popframe.models.region import Region
-
 from app.dependences import (
     urban_api_handler,
     http_exception,
-    logger,
 )
-from app.common.storage.pop_frame_caching_service import pop_frame_caching_service
+from app.common.storage.models.pop_frame_caching_service import pop_frame_caching_service
 from .services.popframe_models_api_service import pop_frame_model_api_service
 
 
@@ -135,7 +135,7 @@ class PopFrameModelsService:
             Region: PopFrame regional model
         """
 
-        if pop_frame_caching_service.check_path(region_id=region_id):
+        if await pop_frame_caching_service.check_path(region_id=region_id):
             model = await pop_frame_caching_service.load_cached_model(region_id=region_id)
             return model
         await self.calculate_model(region_id=region_id)

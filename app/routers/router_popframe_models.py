@@ -1,11 +1,19 @@
-from fastapi import APIRouter
+import asyncio
 
-from app.dependences import logger
+from fastapi import APIRouter, BackgroundTasks
+from loguru import logger
+
 from app.common.models.popframe_models.popframe_models_service import pop_frame_model_service
 
+recalculating = False
 
 model_calculator_router = APIRouter(prefix="/model_calculator")
 
+
+@model_calculator_router.put("/recalculate/all")
+async def recalculate_all_popframe_models():
+    asyncio.create_task(pop_frame_model_service.load_and_cash_all_models())
+    return {"msg": "started recalculation"}
 
 @model_calculator_router.put("/recalculate/{region_id}")
 async def recalculate_region(region_id: int):

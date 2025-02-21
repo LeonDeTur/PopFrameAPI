@@ -140,9 +140,13 @@ dmypy.json
 *.pkl
 *.graphml
 *.csv
+*.json
+*.gpkg
 /popframe/output_data
 
 cache/
+__popframe_model_cache__
+__geoserver_cache__
 /examples/data
 
 # PyCharm env

@@ -7,16 +7,52 @@ from popframe.models.region import Region
 from typing import Any, Dict
 
 from app.common.models.popframe_models.popframe_models_service import pop_frame_model_service
+from app.dependences import geoserver_storage
+from app.common.storage.geoserver.geoserver_dto import PopFrameGeoserverDTO
 
 agglomeration_router = APIRouter(prefix="/agglomeration", tags=["Agglomeration"])
 
-@agglomeration_router.get("/build_agglomeration", response_model=Dict[str, Any])
-def get_agglomeration_endpoint(
-        region_model: Region = Depends(
-        pop_frame_model_service.get_model
-    )
+@agglomeration_router.get("/geoserver/get_href", response_model=list[PopFrameGeoserverDTO])
+async def get_href(
+        region_id: int
+) -> list[PopFrameGeoserverDTO]:
+    try:
+        region_model = await pop_frame_model_service.get_model(region_id)
+        frame_method = PopulationFrame(region=region_model)
+        gdf_frame = frame_method.build_circle_frame()
+        builder = AgglomerationBuilder(region=region_model)
+        agglomeration_gdf = builder.get_agglomerations()
+        towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
+        await geoserver_storage.save_gdf_to_geoserver(
+            layer=agglomeration_gdf,
+            name="popframe",
+            region_id=region_id,
+            layer_type="agglomerations",
+        )
+        agglomerations = await geoserver_storage.get_layer_from_geoserver(
+            region_id=region_id,
+            layer_type="agglomerations",
+        )
+        await geoserver_storage.save_gdf_to_geoserver(
+            layer=towns_with_status,
+            name="popframe",
+            region_id=region_id,
+            layer_type="cities",
+        )
+        cities = await geoserver_storage.get_layer_from_geoserver(
+            region_id=region_id,
+            layer_type="cities",
+        )
+        return [agglomerations, cities]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during agglomeration processing: {str(e)}")
+
+@agglomeration_router.get("/build_agglomeration")
+async def get_agglomeration_endpoint(
+        region_id: int
 ):
     try:
+        region_model = await pop_frame_model_service.get_model(region_id)
         builder = AgglomerationBuilder(region=region_model)
         agglomeration_gdf = builder.get_agglomerations()
         result = json.loads(agglomeration_gdf.to_json())
