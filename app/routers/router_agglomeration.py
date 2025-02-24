@@ -17,33 +17,29 @@ async def get_href(
         region_id: int
 ) -> list[PopFrameGeoserverDTO]:
     try:
-        region_model = await pop_frame_model_service.get_model(region_id)
-        frame_method = PopulationFrame(region=region_model)
-        gdf_frame = frame_method.build_circle_frame()
-        builder = AgglomerationBuilder(region=region_model)
-        agglomeration_gdf = builder.get_agglomerations()
-        towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
-        await geoserver_storage.save_gdf_to_geoserver(
-            layer=agglomeration_gdf,
-            name="popframe",
+
+        agglomeration_check = await geoserver_storage.check_cached_layers(
             region_id=region_id,
-            layer_type="agglomerations",
+            layer_type="agglomerations"
         )
-        agglomerations = await geoserver_storage.get_layer_from_geoserver(
+        cities_check = await geoserver_storage.check_cached_layers(
             region_id=region_id,
-            layer_type="agglomerations",
+            layer_type="cities"
         )
-        await geoserver_storage.save_gdf_to_geoserver(
-            layer=towns_with_status,
-            name="popframe",
-            region_id=region_id,
-            layer_type="cities",
-        )
-        cities = await geoserver_storage.get_layer_from_geoserver(
-            region_id=region_id,
-            layer_type="cities",
-        )
-        return [agglomerations, cities]
+        if agglomeration_check and cities_check:
+            agglomerations = await geoserver_storage.get_layer_from_geoserver(
+                region_id=region_id,
+                layer_type="agglomerations",
+            )
+            cities = await geoserver_storage.get_layer_from_geoserver(
+                region_id=region_id,
+                layer_type="cities",
+            )
+            return [agglomerations, cities]
+        else:
+            await pop_frame_model_service.calculate_model(region_id)
+            result = await get_href(region_id)
+            return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error during agglomeration processing: {str(e)}")
 

@@ -4,12 +4,14 @@ import json
 import geopandas as gpd
 import pandas as pd
 from loguru import logger
+from popframe.method.aglomeration import AgglomerationBuilder
+from popframe.method.popuation_frame import PopulationFrame
 
 from popframe.preprocessing.level_filler import LevelFiller
 from popframe.models.region import Region
 from app.dependences import (
     urban_api_handler,
-    http_exception,
+    http_exception, geoserver_storage,
 )
 from app.common.storage.models.pop_frame_caching_service import pop_frame_caching_service
 from .services.popframe_models_api_service import pop_frame_model_api_service
@@ -105,6 +107,29 @@ class PopFrameModelsService:
         await pop_frame_caching_service.cache_model_to_pickle(
             region_model=model,
             region_id=region_id,
+        )
+        frame_method = PopulationFrame(region=model)
+        gdf_frame = frame_method.build_circle_frame()
+        builder = AgglomerationBuilder(region=model)
+        agglomeration_gdf = builder.get_agglomerations()
+        towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
+        await geoserver_storage.save_gdf_to_geoserver(
+            layer=agglomeration_gdf,
+            name="popframe",
+            region_id=region_id,
+            layer_type="agglomerations",
+        )
+        await geoserver_storage.save_gdf_to_geoserver(
+            layer=towns_with_status,
+            name="popframe",
+            region_id=region_id,
+            layer_type="cities",
+        )
+        await geoserver_storage.save_gdf_to_geoserver(
+            layer=towns_with_status,
+            name="popframe",
+            region_id=region_id,
+            layer_type="cities",
         )
 
     async def load_and_cash_all_models(self):
