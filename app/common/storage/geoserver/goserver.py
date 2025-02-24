@@ -92,3 +92,23 @@ class GeoserverStorage:
             split_layer[6],
             target_layer.href
         )
+
+    async def check_cached_layers(
+            self,
+            region_id: int,
+            layer_type: Literal["cities", "agglomerations"]
+    ) -> bool:
+        """
+        Function checks weather cached model exists
+        Args:
+            region_id (int): Region ID
+        Returns:
+            bool: weather model exists
+        """
+
+        cache_folder = self.storage.cache_path
+        for path in cache_folder.iterdir():
+            name_list = path.name.split("_")
+            if int(name_list[2]) == region_id and name_list[3].split(".")[0] == layer_type:
+                return True
+        return False
