@@ -96,9 +96,9 @@ class PopFrameModelApiService:
                     ) for ter_id in current_ids
                 ]
                 results = await asyncio.gather(*task_list)
-                pop_to_add = [i[0]["value"] if len(i) > 0 else 0 for i in results]
+                pop_to_add = [i[0]["value"] if len(i) > 0 else 1 for i in results]
+                pop_to_add = [int(i) for i in pop_to_add]
                 population_list += pop_to_add
-                logger.info(f"Extracted {round((item + 15)/len(territories_ids) * 100, 2)}% population data queries")
         try:
             population_df = pd.DataFrame(
                 np.array([territories_ids, population_list]).T,

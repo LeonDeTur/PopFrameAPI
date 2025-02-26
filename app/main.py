@@ -45,11 +45,11 @@ app.add_middleware(
 def read_root():
     return {"message": "Welcome to PopFrame Service"}
 
-@app.get("/logs")
-async def get_logs() -> list[str]:
+@app.get("/logs", response_model=str)
+async def get_logs() -> str:
     async with aiofiles.open(config.get("LOGS_FILE")) as f:
         result = await f.readlines()
-        return result[-10000:-1]
+        return "\n".join(result[-10000:-1:])
 
 
 app.include_router(model_calculator_router)
