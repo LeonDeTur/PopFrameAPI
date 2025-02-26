@@ -121,6 +121,7 @@ class PopFrameModelsService:
         towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
         await geoserver_storage.delete_geoserver_cached_layers(region_id)
         logger.info(f"All old .gpkg layer for region {region_id} are deleted")
+        agglomeration_gdf.to_crs(4326, inplace=True)
         await geoserver_storage.save_gdf_to_geoserver(
             layer=agglomeration_gdf,
             name="popframe",
@@ -128,6 +129,7 @@ class PopFrameModelsService:
             layer_type="agglomerations",
         )
         logger.info(f"Loaded agglomerations for region {region_id} on geoserver")
+        towns_with_status.to_crs(4326, inplace=True)
         await geoserver_storage.save_gdf_to_geoserver(
             layer=towns_with_status,
             name="popframe",
