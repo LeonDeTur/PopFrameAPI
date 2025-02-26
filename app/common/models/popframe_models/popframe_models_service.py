@@ -88,6 +88,7 @@ class PopFrameModelsService:
         population_data_df = await pop_frame_model_api_service.get_territories_population(
             territories_ids=cities_gdf["territory_id"].to_list(),
         )
+        logger.info(f"Successfully retrieved population data for region {region_id}")
         cities_gdf = pd.merge(
             cities_gdf,
             population_data_df,
