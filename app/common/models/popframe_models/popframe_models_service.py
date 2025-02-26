@@ -1,4 +1,3 @@
-import asyncio
 import json
 
 import geopandas as gpd
@@ -50,6 +49,7 @@ class PopFrameModelsService:
             return region_model
 
         except Exception as e:
+            logger.error(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during PopFrame model initialization with region {region_id}",
@@ -69,8 +69,9 @@ class PopFrameModelsService:
         Returns:
             None
         """
-
+        logger.info(f"Started model calculation for the region {region_id}")
         region_borders = await pop_frame_model_api_service.get_region_borders(region_id)
+        logger.info(f"Extracted region border for the region {region_id}")
         cities = await urban_api_handler.get(
             endpoint_url="/api/v1/all_territories",
             params={
@@ -83,6 +84,7 @@ class PopFrameModelsService:
         if len(cities["features"]) < 1:
             logger.info(f"No cities found for region {region_id}")
         cities_gdf = gpd.GeoDataFrame.from_features(cities, crs=4326)
+        logger.info(f"Started population retrieval for region {region_id}")
         population_data_df = await pop_frame_model_api_service.get_territories_population(
             territories_ids=cities_gdf["territory_id"].to_list(),
         )
@@ -92,10 +94,13 @@ class PopFrameModelsService:
             on="territory_id"
         ).reset_index(drop=True)
         cities_gdf.set_index("territory_id", inplace=True)
+        cities_gdf = gpd.GeoDataFrame(cities_gdf, geometry="geometry", crs=4326)
         level_filler = LevelFiller(towns=cities_gdf)
         towns = level_filler.fill_levels()
         logger.info(f"Loaded cities for region {region_id}")
+        logger.info(f"Started matrix retrieval for region {region_id}")
         matrix = await pop_frame_model_api_service.get_matrix_for_region(region_id=region_id, graph_type="car")
+        logger.info(f"Retrieved matrix for region {region_id}")
         matrix = matrix.loc[towns.index, towns.index]
         logger.info(f"Loaded matrix for region {region_id}")
         model = await self.create_model(
@@ -113,24 +118,22 @@ class PopFrameModelsService:
         builder = AgglomerationBuilder(region=model)
         agglomeration_gdf = builder.get_agglomerations()
         towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
+        await geoserver_storage.delete_geoserver_cached_layers(region_id)
+        logger.info(f"All old .gpkg layer for region {region_id} are deleted")
         await geoserver_storage.save_gdf_to_geoserver(
             layer=agglomeration_gdf,
             name="popframe",
             region_id=region_id,
             layer_type="agglomerations",
         )
+        logger.info(f"Loaded agglomerations for region {region_id} on geoserver")
         await geoserver_storage.save_gdf_to_geoserver(
             layer=towns_with_status,
             name="popframe",
             region_id=region_id,
             layer_type="cities",
         )
-        await geoserver_storage.save_gdf_to_geoserver(
-            layer=towns_with_status,
-            name="popframe",
-            region_id=region_id,
-            layer_type="cities",
-        )
+        logger.info(f"Loaded cities for region {region_id} on geoserver")
 
     async def load_and_cash_all_models(self):
         """
@@ -140,13 +143,8 @@ class PopFrameModelsService:
         """
 
         regions_ids_to_process = await pop_frame_model_api_service.get_regions()
-        for i in range(0, len(regions_ids_to_process), 5):
-            task_list = [
-                self.calculate_model(region_id=j) for j in regions_ids_to_process[i:i+5] if j not in (
-                    3268, 3138
-                )
-            ]
-            await asyncio.gather(*task_list)
+        for region_id in regions_ids_to_process:
+            await self.calculate_model(region_id=region_id)
 
     async def get_model(
             self,

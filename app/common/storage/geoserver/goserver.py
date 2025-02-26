@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from http.client import HTTPException
 from pathlib import Path
@@ -16,6 +17,7 @@ class GeoserverStorage:
     """
     Geoserver handling cache and loading layers from api
     """
+
     def __init__(
             self,
             cache_path: Path,
@@ -42,7 +44,7 @@ class GeoserverStorage:
             layer: gpd.GeoDataFrame,
             name: str,
             region_id: int,
-            layer_type: Literal["cities", "agglomerations"]
+            layer_type: Literal["cities", "agglomerations"],
     ) -> None:
 
         created_at = datetime.now()
@@ -106,9 +108,18 @@ class GeoserverStorage:
             bool: weather model exists
         """
 
-        cache_folder = self.storage.cache_path
-        for path in cache_folder.iterdir():
-            name_list = path.name.split("_")
-            if int(name_list[2]) == region_id and name_list[3].split(".")[0] == layer_type:
+        files = list(self.storage.cache_path.iterdir())
+        filenames = [os.path.split(i)[-1] for i in files]
+        for filename in filenames:
+            file_name_list = filename.split("_")
+            if file_name_list[2] == str(region_id) and file_name_list[3].split(".")[0] == layer_type:
                 return True
         return False
+
+    async def delete_geoserver_cached_layers(self, region_id: int) -> None:
+
+        files = list(self.storage.cache_path.iterdir())
+        filenames = [os.path.split(i)[-1] for i in files]
+        for filename in filenames:
+            if filename.split("_")[2] == str(region_id):
+                os.remove(self.storage.cache_path / filename)

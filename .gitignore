@@ -146,7 +146,7 @@ dmypy.json
 
 cache/
 __popframe_model_cache__
-__geoserver_cache__
+__geoserver__cache__
 /examples/data
 
 # PyCharm env

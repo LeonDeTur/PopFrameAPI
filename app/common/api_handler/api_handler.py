@@ -1,4 +1,5 @@
 import aiohttp
+from loguru import logger
 
 from app.common.exceptions.http_exception_wrapper import http_exception
 
@@ -42,19 +43,23 @@ class APIHandler:
                     return None
             else:
                 response_info = await response.text()
-            raise http_exception(
+            exception = http_exception(
                 response.status,
                 "Couldn't get data from API",
                 _input=response.url.__str__(),
                 _detail=response_info,
             )
+            logger.error(exception)
+            raise exception
         else:
-            raise http_exception(
+            exception = http_exception(
                 response.status,
                 "Couldn't get data from API",
                 _input=response.url.__str__(),
                 _detail=await response.json(),
             )
+            logger.error(exception)
+            raise exception
 
     async def get(
             self,
@@ -89,7 +94,7 @@ class APIHandler:
                 params=params
         ) as response:
             result = await self._check_response_status(response)
-            if not result:
+            if result is None:
                 return await  self.get(
                     endpoint_url=endpoint_url,
                     headers=headers,
@@ -135,7 +140,7 @@ class APIHandler:
             data=data,
         ) as response:
             result = await self._check_response_status(response)
-            if not result:
+            if result is None:
                 return await  self.post(
                     endpoint_url=endpoint_url,
                     headers=headers,
@@ -181,7 +186,7 @@ class APIHandler:
                 data=data,
         ) as response:
             result = await self._check_response_status(response)
-            if not result:
+            if result is None:
                 return await  self.put(
                     endpoint_url=endpoint_url,
                     headers=headers,
@@ -227,7 +232,7 @@ class APIHandler:
                 data=data,
         ) as response:
             result = await self._check_response_status(response)
-            if not result:
+            if result is None:
                 return await  self.delete(
                     endpoint_url=endpoint_url,
                     headers=headers,
