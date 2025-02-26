@@ -21,7 +21,7 @@ logger.add(config.get("LOGS_FILE"), level=log_level, format=log_format, colorize
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(pop_frame_model_service.load_and_cash_all_models())
+    await pop_frame_model_service.load_and_cash_all_models()
     yield
 
 app = FastAPI(

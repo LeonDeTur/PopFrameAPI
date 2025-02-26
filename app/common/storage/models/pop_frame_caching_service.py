@@ -31,13 +31,15 @@ class PopFrameCachingService(CachingService):
 
     async def get_available_models(
             self
-    ) -> list[str]:
+    ) -> list[int]:
         """
         Function returns all cached models
         """
 
         files = list(self.caching_path.iterdir())
-        return files
+        file_names = [i.split("/")[-1] for i in files]
+        regions = [int(i.split(".")[0]) for i in file_names]
+        return regions
 
     async def cache_model_to_pickle(self, region_model: Region, region_id: int) -> str:
         """
@@ -51,12 +53,10 @@ class PopFrameCachingService(CachingService):
 
         string_path = self.caching_path.joinpath(".".join([str(region_id), "pkl"])).__str__()
         try:
-            await asyncio.to_thread(
-                region_model.to_pickle,
-                string_path
-            )
+            region_model.to_pickle(string_path),
             logger.info(f"Cached file {region_id} to {string_path}")
         except Exception as e:
+            logger.error(e)
             raise http_exception(
                 status_code=500,
                 msg=f"Failed to cache file to pickle {region_id}",

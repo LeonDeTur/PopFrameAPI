@@ -1,6 +1,7 @@
 import asyncio
 from typing import Literal
 
+import aiohttp
 import numpy as np
 import geopandas as gpd
 import pandas as pd
@@ -82,20 +83,22 @@ class PopFrameModelApiService:
         """
 
         population_list = []
-        for item in range(0, len(territories_ids), 15):
-            current_ids = territories_ids[item: item + 15]
-            task_list = [
-                urban_api_handler.get(
-                    endpoint_url=f"/api/v1/territory/{ter_id}/indicator_values",
-                    params={
-                        "indicator_value": 1
-                    }
-                ) for ter_id in current_ids
-            ]
-            results = await asyncio.gather(*task_list)
-            logger.info(f"Population response length: {len(results)}")
-            pop_to_add = [i[0]["value"] if len(i) > 0 else 0 for i in results]
-            population_list += pop_to_add
+        async with aiohttp.ClientSession() as session:
+            for item in range(0, len(territories_ids), 15):
+                current_ids = territories_ids[item: item + 15]
+                task_list = [
+                    urban_api_handler.get(
+                        session=session,
+                        endpoint_url=f"/api/v1/territory/{ter_id}/indicator_values",
+                        params={
+                            "indicator_value": 1
+                        }
+                    ) for ter_id in current_ids
+                ]
+                results = await asyncio.gather(*task_list)
+                pop_to_add = [i[0]["value"] if len(i) > 0 else 0 for i in results]
+                population_list += pop_to_add
+                logger.info(f"Extracted {round((item + 15)/len(territories_ids) * 100, 2)}% population data queries")
         try:
             population_df = pd.DataFrame(
                 np.array([territories_ids, population_list]).T,
@@ -104,7 +107,7 @@ class PopFrameModelApiService:
             population_df = population_df[population_df["population"] > 0].copy()
             return population_df
         except Exception as e:
-            logger.error(f"error during population data retrieval {str(e)}")
+            logger.error(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during population data retrieval",
@@ -112,7 +115,7 @@ class PopFrameModelApiService:
                 _detail={"Error": str(e)}
             )
 
-    #ToDo rewrite to object api
+    #ToDo rewrite to object api or graph api
     @staticmethod
     async def get_matrix_for_region(
             region_id: int,
@@ -139,7 +142,7 @@ class PopFrameModelApiService:
         try:
             adj_mx = pd.DataFrame(response['values'], index=response['index'], columns=response['columns'])
         except Exception as e:
-            logger.error(f"error during matrix retrieval {str(e)}")
+            logger.error(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during matrix parsing",
