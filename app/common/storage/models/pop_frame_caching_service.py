@@ -1,5 +1,5 @@
 import asyncio
-from pathlib import Path
+from pathlib import Path, WindowsPath
 
 from loguru import logger
 
@@ -37,11 +37,13 @@ class PopFrameCachingService(CachingService):
         """
 
         files = list(self.caching_path.iterdir())
-        file_names = [i.split("/")[-1] for i in files]
-        regions = [int(i.split(".")[0]) for i in file_names]
+        if len(files) > 0:
+            regions = [int(file.name.split(".")[0]) for file in files]
+        else:
+            regions = []
         return regions
 
-    async def cache_model_to_pickle(self, region_model: Region, region_id: int) -> str:
+    async def cache_model_to_pickle(self, region_model: Region, region_id: int) -> None:
         """
         Function caches popframe model to pickle
         Args:

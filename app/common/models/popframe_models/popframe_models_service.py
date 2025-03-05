@@ -138,7 +138,7 @@ class PopFrameModelsService:
         )
         logger.info(f"Loaded cities for region {region_id} on geoserver")
 
-    async def load_and_cash_all_models(self):
+    async def load_and_cache_all_models(self):
         """
         Functions loads and cashes all available models
         Returns:
@@ -147,6 +147,19 @@ class PopFrameModelsService:
 
         regions_ids_to_process = await pop_frame_model_api_service.get_regions()
         for region_id in regions_ids_to_process:
+            await self.calculate_model(region_id=region_id)
+
+    async def load_and_cache_all_models_on_startup(self):
+        """
+        Functions loads and cashes all available models on app startup
+        Returns:
+            None
+        """
+
+        all_regions = await pop_frame_model_api_service.get_regions()
+        cached_regions = await self.get_available_regions()
+        regions_to_calculate = list(set(all_regions) - set(cached_regions))
+        for region_id in regions_to_calculate:
             await self.calculate_model(region_id=region_id)
 
     async def get_model(
