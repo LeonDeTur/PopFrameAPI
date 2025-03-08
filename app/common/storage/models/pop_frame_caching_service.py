@@ -1,5 +1,5 @@
 import asyncio
-from pathlib import Path, WindowsPath
+from pathlib import Path
 
 from loguru import logger
 
