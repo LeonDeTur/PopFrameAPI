@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 import json
 from popframe.method.aglomeration import AgglomerationBuilder
 from popframe.method.popuation_frame import PopulationFrame
-from popframe.models.region import Region
 from typing import Any, Dict
 
 from app.common.models.popframe_models.popframe_models_service import pop_frame_model_service

@@ -155,12 +155,15 @@ class PopFrameModelsService:
         Returns:
             None
         """
-
-        all_regions = await pop_frame_model_api_service.get_regions()
-        cached_regions = await self.get_available_regions()
-        regions_to_calculate = list(set(all_regions) - set(cached_regions))
-        for region_id in regions_to_calculate:
-            await self.calculate_model(region_id=region_id)
+        try:
+            all_regions = await pop_frame_model_api_service.get_regions()
+            cached_regions = await self.get_available_regions()
+            regions_to_calculate = list(set(all_regions) - set(cached_regions))
+            for region_id in regions_to_calculate:
+                await self.calculate_model(region_id=region_id)
+        except Exception as e:
+            logger.error(e)
+            return
 
     async def get_model(
             self,
