@@ -3,11 +3,12 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 import json
 from popframe.method.aglomeration import AgglomerationBuilder
 from popframe.method.popuation_frame import PopulationFrame
-from typing import Any, Dict
+from typing import Any, Dict, Annotated
 
 from app.common.models.popframe_models.popframe_models_service import pop_frame_model_service
 from app.dependences import geoserver_storage
 from app.common.storage.geoserver.geoserver_dto import PopFrameGeoserverDTO
+from app.dto import RegionAgglomerationDTO
 
 agglomeration_router = APIRouter(prefix="/agglomeration", tags=["Agglomeration"])
 
@@ -44,13 +45,12 @@ async def get_href(
 
 @agglomeration_router.get("/build_agglomeration")
 async def get_agglomeration_endpoint(
-        region_id: int,
-        time: int=80
+        agglomerations_params: Annotated[RegionAgglomerationDTO, Depends(RegionAgglomerationDTO)]
 ):
     try:
-        region_model = await pop_frame_model_service.get_model(region_id)
+        region_model = await pop_frame_model_service.get_model(agglomerations_params.region_id)
         builder = AgglomerationBuilder(region=region_model)
-        agglomeration_gdf = builder.get_agglomerations(time=time)
+        agglomeration_gdf = builder.get_agglomerations(time=agglomerations_params.time)
         agglomeration_gdf.to_crs(4326, inplace=True)
         result = json.loads(agglomeration_gdf.to_json())
         return result
@@ -60,15 +60,14 @@ async def get_agglomeration_endpoint(
 
 @agglomeration_router.get("/evaluate_city_agglomeration_status", response_model=Dict[str, Any])
 async def evaluate_cities_in_agglomeration(
-        region_id: int,
-        time: int=80
+        agglomerations_params: Annotated[RegionAgglomerationDTO, Depends(RegionAgglomerationDTO)]
 ):
     try:
-        region_model = await pop_frame_model_service.get_model(region_id)
+        region_model = await pop_frame_model_service.get_model(agglomerations_params.region_id)
         frame_method = PopulationFrame(region=region_model)
         gdf_frame = frame_method.build_circle_frame()
         builder = AgglomerationBuilder(region=region_model)
-        agglomeration_gdf = builder.get_agglomerations(time=time)
+        agglomeration_gdf = builder.get_agglomerations(time=agglomerations_params.time)
         towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
         towns_with_status.to_crs(4326, inplace=True)
         result = json.loads(towns_with_status.to_json())
