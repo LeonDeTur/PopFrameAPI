@@ -12,6 +12,7 @@ from app.dependences import (
     urban_api_handler,
     http_exception, geoserver_storage,
 )
+
 from app.common.storage.models.pop_frame_caching_service import pop_frame_caching_service
 from .services.popframe_models_api_service import pop_frame_model_api_service
 
@@ -42,7 +43,7 @@ class PopFrameModelsService:
         local_crs = region_borders.estimate_utm_crs()
         try:
             region_model = Region(
-                region = region_borders.to_crs(local_crs),
+                region=region_borders.to_crs(local_crs),
                 towns=towns.to_crs(local_crs),
                 accessibility_matrix=adj_mx
             )
@@ -119,6 +120,11 @@ class PopFrameModelsService:
         builder = AgglomerationBuilder(region=model)
         agglomeration_gdf = builder.get_agglomerations()
         towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
+        agglomeration_indicators = towns_with_status["agglomeration_status"].value_counts()
+        await pop_frame_model_api_service.upload_popframe_indicators(
+            agglomeration_indicators,
+            region_id
+        )
         await geoserver_storage.delete_geoserver_cached_layers(region_id)
         logger.info(f"All old .gpkg layer for region {region_id} are deleted")
         agglomeration_gdf.to_crs(4326, inplace=True)
@@ -168,6 +174,7 @@ class PopFrameModelsService:
                 await self.calculate_model(region_id=region_id)
             except Exception as e:
                 logger.error(e)
+                continue
 
     async def get_model(
             self,

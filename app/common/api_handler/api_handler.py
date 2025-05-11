@@ -137,7 +137,7 @@ class APIHandler:
             url=url,
             headers=headers,
             params=params,
-            data=data,
+            json=data,
         ) as response:
             result = await self._check_response_status(response)
             if result is None:
