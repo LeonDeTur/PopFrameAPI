@@ -107,7 +107,7 @@ class PopFrameModelApiService:
             population_df = population_df[population_df["population"] > 0].copy()
             return population_df
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during population data retrieval",
@@ -137,12 +137,12 @@ class PopFrameModelApiService:
             endpoint_url=f"/{region_id}/get_matrix",
             params={
                 "graph_type": graph_type,
-            }
+            },
         )
         try:
             adj_mx = pd.DataFrame(response['values'], index=response['index'], columns=response['columns'])
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during matrix parsing",
@@ -199,7 +199,7 @@ class PopFrameModelApiService:
         try:
             for i in indicators_series.index:
                 if map_dict.get(i):
-                    await urban_api_handler.post(
+                    await urban_api_handler.put(
                         endpoint_url="/api/v1/indicator_value",
                         data={
                             "indicator_id": map_dict[i]["indicator_id"],
