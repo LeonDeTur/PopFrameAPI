@@ -90,7 +90,7 @@ async def process_combined_evaluation(
                 json=indicator_data
             )
             if indicators_response.status_code not in (200, 201):
-                logger.error(f"Ошибка при сохранении показателей (локация): {indicators_response.status_code}, "
+                logger.exception(f"Ошибка при сохранении показателей (локация): {indicators_response.status_code}, "
                              f"Тело ответа: {indicators_response.text}")
                 raise Exception("Ошибка при сохранении показателей (локация)")
 
@@ -116,12 +116,12 @@ async def process_combined_evaluation(
                 json=indicator_data
             )
             if indicators_response.status_code not in (200, 201):
-                logger.error(f"Ошибка при сохранении показателей (население): {indicators_response.status_code}, "
+                logger.exception(f"Ошибка при сохранении показателей (население): {indicators_response.status_code}, "
                              f"Тело ответа: {indicators_response.text}")
                 raise Exception("Ошибка при сохранении показателей (население)")
 
     except Exception as e:
-        logger.error(f"Ошибка при комбинированной обработке: {e}")
+        logger.exception(f"Ошибка при комбинированной обработке: {e}")
 
 @popframe_router.put("/save_popframe_evaluation")
 async def save_popframe_evaluation_endpoint(

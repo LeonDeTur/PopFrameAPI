@@ -114,11 +114,11 @@ async def process_evaluation(
                 json=indicator_data
             )
             if indicators_response.status_code not in (200, 201):
-                logger.error(f"Error saving indicators: {indicators_response.status_code}, "
+                logger.exception(f"Error saving indicators: {indicators_response.status_code}, "
                              f"Response body: {indicators_response.text}")
                 raise Exception("Error saving indicators")
     except Exception as e:
-        logger.error(f"Error during saving indicators {e.__str__()}")
+        logger.exception(f"Error during saving indicators {e.__str__()}")
 
 
 @territory_router.post("/save_evaluate_location")

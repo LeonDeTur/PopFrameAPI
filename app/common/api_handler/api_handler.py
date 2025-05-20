@@ -39,7 +39,7 @@ class APIHandler:
         elif response.status == 500:
             if response.content_type == "application/json":
                 response_info = await response.json()
-                if "reset by peer" in await response_info["error"]:
+                if "reset by peer" in response_info["error"]:
                     return None
             else:
                 response_info = await response.text()
@@ -183,7 +183,7 @@ class APIHandler:
                 url=url,
                 headers=headers,
                 params=params,
-                data=data,
+                json=data,
         ) as response:
             result = await self._check_response_status(response)
             if result is None:

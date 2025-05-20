@@ -50,7 +50,7 @@ class PopFrameModelsService:
             return region_model
 
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during PopFrame model initialization with region {region_id}",
@@ -153,7 +153,10 @@ class PopFrameModelsService:
 
         regions_ids_to_process = await pop_frame_model_api_service.get_regions()
         for region_id in regions_ids_to_process:
-            await self.calculate_model(region_id=region_id)
+            try:
+                await self.calculate_model(region_id=region_id)
+            except Exception as e:
+                logger.exception(e)
 
     async def load_and_cache_all_models_on_startup(self):
         """
@@ -167,13 +170,13 @@ class PopFrameModelsService:
             cached_regions = await self.get_available_regions()
             regions_to_calculate = list(set(all_regions) - set(cached_regions))
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             return
         for region_id in regions_to_calculate:
             try:
                 await self.calculate_model(region_id=region_id)
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
                 continue
 
     async def get_model(
