@@ -21,7 +21,7 @@ from app.dependences import (
 class PopFrameModelApiService:
     """Class for external api services data retrieving"""
 
-    #ToDo processing database level changes
+    # ToDo processing database level changes
     @staticmethod
     async def get_regions() -> list[int]:
         """
@@ -110,7 +110,7 @@ class PopFrameModelApiService:
             population_df = population_df[population_df["population"] > 0].copy()
             return population_df
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during population data retrieval",
@@ -118,7 +118,7 @@ class PopFrameModelApiService:
                 _detail={"Error": str(e)}
             )
 
-    #ToDo rewrite to object api or graph api
+    # ToDo rewrite to object api or graph api
     @staticmethod
     async def get_matrix_for_region(
             region_id: int,
@@ -140,12 +140,12 @@ class PopFrameModelApiService:
             endpoint_url=f"/{region_id}/get_matrix",
             params={
                 "graph_type": graph_type,
-            }
+            },
         )
         try:
             adj_mx = pd.DataFrame(response['values'], index=response['index'], columns=response['columns'])
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during matrix parsing",
@@ -161,6 +161,7 @@ class PopFrameModelApiService:
                 _detail={}
             )
         return adj_mx
+
 
     #ToDo Rewrite to api handler
     @staticmethod
@@ -190,6 +191,61 @@ class PopFrameModelApiService:
 
         towns_gdf = pickle.loads(response.content)
         return towns_gdf
+
+    # ToDo Rewrite to hash object
+    @staticmethod
+    async def get_cities_indicators_map() -> dict[str, dict[str, str | int | None]]:
+        """
+        Function retrieves map of cities indicators
+        Returns:
+            dict[]
+        Raises:
+            Any from urban api
+        """
+
+        response = await urban_api_handler.get(
+            "/api/v1/indicators_by_parent",
+            params={
+                "parent_id": 6,
+                "get_all_subtree": "false"
+            }
+        )
+        custom_map = {
+            "Населенные пункты в агломерациях": "В агломерации",
+            "Населенные пункты вне агломераций": "Вне агломерации"
+        }
+        res = {custom_map.get(i["name_short"]): i for i in response if custom_map.get(i["name_short"])}
+        return res
+
+    async def upload_popframe_indicators(self, indicators_series: pd.Series, territory_id: int) -> None:
+        """
+        Function uploads popframe indicators to urban api
+        Args:
+            indicators_series (pd.Series): series with indicators
+        Returns:
+            None
+        Raises:
+            500, internal error, in case of upload failure
+        """
+
+        map_dict = await self.get_cities_indicators_map()
+        try:
+            for i in indicators_series.index:
+                if map_dict.get(i):
+                    await urban_api_handler.put(
+                        endpoint_url="/api/v1/indicator_value",
+                        data={
+                            "indicator_id": map_dict[i]["indicator_id"],
+                            "territory_id": territory_id,
+                            "date_type": "year",
+                            "date_value": "2025-01-01",
+                            "value": int(indicators_series[i]),
+                            "value_type": "real",
+                            "information_source": "modeled/PopFrame",
+                        }
+                    )
+        except Exception as e:
+            raise e
 
 
 pop_frame_model_api_service = PopFrameModelApiService()

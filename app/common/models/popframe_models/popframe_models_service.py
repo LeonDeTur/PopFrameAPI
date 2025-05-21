@@ -11,6 +11,7 @@ from popframe.models.region import Region
 from app.dependences import (
     http_exception, geoserver_storage,
 )
+
 from app.common.storage.models.pop_frame_caching_service import pop_frame_caching_service
 from .services.popframe_models_api_service import pop_frame_model_api_service
 
@@ -41,14 +42,14 @@ class PopFrameModelsService:
         local_crs = region_borders.estimate_utm_crs()
         try:
             region_model = Region(
-                region = region_borders.to_crs(local_crs),
+                region=region_borders.to_crs(local_crs),
                 towns=towns.to_crs(local_crs),
                 accessibility_matrix=adj_mx
             )
             return region_model
 
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             raise http_exception(
                 status_code=500,
                 msg=f"error during PopFrame model initialization with region {region_id}",
@@ -122,6 +123,11 @@ class PopFrameModelsService:
         builder = AgglomerationBuilder(region=model)
         agglomeration_gdf = builder.get_agglomerations()
         towns_with_status = builder.evaluate_city_agglomeration_status(gdf_frame, agglomeration_gdf)
+        agglomeration_indicators = towns_with_status["agglomeration_status"].value_counts()
+        await pop_frame_model_api_service.upload_popframe_indicators(
+            agglomeration_indicators,
+            region_id
+        )
         await geoserver_storage.delete_geoserver_cached_layers(region_id)
         logger.info(f"All old .gpkg layer for region {region_id} are deleted")
         agglomeration_gdf.to_crs(4326, inplace=True)
@@ -150,7 +156,10 @@ class PopFrameModelsService:
 
         regions_ids_to_process = await pop_frame_model_api_service.get_regions()
         for region_id in regions_ids_to_process:
-            await self.calculate_model(region_id=region_id)
+            try:
+                await self.calculate_model(region_id=region_id)
+            except Exception as e:
+                logger.exception(e)
 
     async def load_and_cache_all_models_on_startup(self):
         """
@@ -164,13 +173,14 @@ class PopFrameModelsService:
             cached_regions = await self.get_available_regions()
             regions_to_calculate = list(set(all_regions) - set(cached_regions))
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             return
         for region_id in regions_to_calculate:
             try:
                 await self.calculate_model(region_id=region_id)
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
+                continue
 
     async def get_model(
             self,

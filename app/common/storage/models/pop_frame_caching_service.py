@@ -58,7 +58,7 @@ class PopFrameCachingService(CachingService):
             region_model.to_pickle(string_path),
             logger.info(f"Cached file {region_id} to {string_path}")
         except Exception as e:
-            logger.error(e)
+            logger.exception(e)
             raise http_exception(
                 status_code=500,
                 msg=f"Failed to cache file to pickle {region_id}",

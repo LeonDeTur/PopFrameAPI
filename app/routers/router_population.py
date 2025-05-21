@@ -123,12 +123,12 @@ async def process_population_criterion(
                 json=indicator_data
             )
             if indicators_response.status_code not in (200, 201):
-                logger.error(f"Ошибка при сохранении показателей: {indicators_response.status_code}, "
+                logger.exception(f"Ошибка при сохранении показателей: {indicators_response.status_code}, "
                              f"Тело ответа: {indicators_response.text}")
                 raise Exception("Ошибка при сохранении показателей")
 
     except Exception as e:
-        logger.error(f"Ошибка при обработке критерия по населению: {e}")
+        logger.exception(f"Ошибка при обработке критерия по населению: {e}")
 
 @population_router.post("/save_population_criterion")
 async def save_population_criterion_endpoint(
